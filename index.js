@@ -234,7 +234,7 @@ async function retrieveRouter() {
 						args.push('--username=' + config.email)
 						args.push('--password=' + config.password)
 					}
-				    const video = ytdl(epData.href, ['-j'])
+				    const video = ytdl(epData.href, args)
 
 				    video.on('error', err => {
 				        reject(err || new Error(defaults.name + ' - Youtube-dl Error: Could Not Parse'))
