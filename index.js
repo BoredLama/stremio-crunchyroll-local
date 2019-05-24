@@ -48,7 +48,7 @@ function retrieveManifest() {
 			version: '1.0.0',
 			name: defaults.name,
 			description: 'Anime from Crunchyroll - Subcription recommended',
-			resources: ['stream', 'meta', 'catalog'],
+			resources: ['stream', 'meta', 'catalog', 'subtitles'],
 			types: ['series', 'anime'],
 			idPrefixes: [defaults.prefix],
 			icon: defaults.icon,
@@ -108,6 +108,8 @@ function retrieveDb() {
 let searchDb = []
 
 let episodes = {}
+
+let subtitles = {}
 
 function findMeta(id) {
 	let meta = {}
@@ -220,6 +222,7 @@ async function retrieveRouter() {
 			const parts = args.id.replace(defaults.prefix, '').split(':')
 			const episode = parts[2]
 			const id = atob(parts[0])
+			const topId = args.id
 			if (episodes[id]) {
 				let epData
 				episodes[id].some(el => {
@@ -241,6 +244,14 @@ async function retrieveRouter() {
 				    })
 
 				    video.on('info', info => {
+				    	subtitles[topId] = []
+				    	for (let key in (info.subtitles || {}))
+				    		if (Array.isArray(info.subtitles[key]) && info.subtitles[key].length)
+					    		subtitles[topId].push({
+			                		url: ['srt', 'vtt'].indexOf(info.subtitles[key][0].ext || '') == -1 ? proxy.addProxy(info.subtitles[key][0].url, { subtitle: { convert: true }, headers: { origin: defaults.endpoint, referer: defaults.endpoint + '/' } }) : info.subtitles[key][0].url,
+			                		lang: key || 'English'
+			                	})
+
 				        if (info.url || info.formats) {
 			        		let streams
 			                 if (info.formats) {
@@ -273,6 +284,12 @@ async function retrieveRouter() {
 					reject(defaults.name + ' - Missing link for episode')
 			} else
 				reject(defaults.name + ' - Episode cache expired')
+		})
+	})
+
+	builder.defineSubtitlesHandler(args => {
+		return new Promise((resolve, reject) => {
+			resolve({ subtitles: subtitles[args.id] || [] })
 		})
 	})
 
